@@ -5,12 +5,13 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 import * as extension from "../extension";
-import * as telemetry from "../telemetry-helper";
+import * as telemetry from "../telemetry";
 import * as utils from "../utils";
 
-export async function setup(context: vscode.ExtensionContext) {
-    const reporter = telemetry.getReporter(context);
-    reporter.sendTelemetryCommand(extension.Commands.Roslaunch);
+export async function setup(logger?: telemetry.ILogger) {
+    if (logger) {
+        logger.logCommand(extension.Commands.Roslaunch);
+    }
 
     let terminal = await prepareroslaunch();
     terminal.show();
