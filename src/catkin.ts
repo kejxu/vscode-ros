@@ -5,14 +5,15 @@ import * as cp from "child_process";
 import * as vscode from "vscode";
 
 import * as extension from "./extension";
-import * as telemetry from "./telemetry-helper";
+import * as telemetry from "./telemetry";
 
 /**
  * Interacts with the user to run a `catkin_create_pkg` command.
  */
-export async function createPackage(context: vscode.ExtensionContext, uri?: vscode.Uri) {
-    const reporter = telemetry.getReporter(context);
-    reporter.sendTelemetryCommand(extension.Commands.CreateCatkinPackage);
+export async function createPackage(logger?: telemetry.ILogger, uri?: vscode.Uri) {
+    if (logger) {
+        logger.logCommand(extension.Commands.CreateCatkinPackage);
+    }
 
     const name = await vscode.window.showInputBox({
         prompt: "Package name",

@@ -7,7 +7,7 @@ import * as vscode from "vscode";
 
 import * as extension from "./extension";
 import * as pfs from "./promise-fs";
-import * as telemetry from "./telemetry-helper";
+import * as telemetry from "./telemetry";
 import * as utils from "./utils";
 
 const PYTHON_AUTOCOMPLETE_PATHS = "python.autoComplete.extraPaths";
@@ -47,7 +47,11 @@ export async function updateCppProperties(context: vscode.ExtensionContext): Pro
 /**
  * Updates the `c_cpp_properties.json` file with ROS include paths.
  */
-async function updateCppPropertiesInternal(): Promise<void> {
+export async function updateCppProperties(logger?: telemetry.ILogger): Promise<void> {
+    if (logger) {
+        logger.logCommand(extension.Commands.UpdateCppProperties);
+    }
+
     const includes = await utils.getIncludeDirs();
     const filename = vscode.workspace.rootPath + "/.vscode/c_cpp_properties.json";
 
@@ -88,6 +92,10 @@ export function updatePythonPath(context: vscode.ExtensionContext) {
 /**
  * Updates the python autocomplete path to support ROS.
  */
-function updatePythonPathInternal() {
+export function updatePythonPath(logger?: telemetry.ILogger) {
+    if (logger) {
+        logger.logCommand(extension.Commands.UpdatePythonPath);
+    }
+
     vscode.workspace.getConfiguration().update(PYTHON_AUTOCOMPLETE_PATHS, extension.env.PYTHONPATH.split(path.delimiter));
 }
