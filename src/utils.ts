@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 
 import * as extension from "./extension";
 import * as pfs from "./promise-fs";
-import * as telemetry from "./telemetry";
+import * as telemetry from "./telemetry-helper";
 
 /**
  * Gets the ROS config section.
@@ -145,10 +145,9 @@ export function findPackageLaunchFiles(packageName: string): Promise<string[]> {
 /**
  * Creates and shows a ROS-sourced terminal.
  */
-export function createTerminal(logger?: telemetry.ILogger) {
-    if (logger) {
-        logger.logCommand(extension.Commands.CreateTerminal);
-    }
+export function createTerminal(context: vscode.ExtensionContext) {
+    const reporter = telemetry.getReporter(context);
+    reporter.sendTelemetryCommand(extension.Commands.CreateTerminal);
 
     vscode.window.createTerminal({ name: 'ROS', env: extension.env }).show();
 }

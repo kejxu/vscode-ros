@@ -14,10 +14,8 @@ function getTelemetryReporter(context: vscode.ExtensionContext): TelemetryReport
     }
 
     const packageInfo = vscodeUtils.getPackageInfo(context);
-    if (packageInfo) {
-        reporterSingleton = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
-        context.subscriptions.push(reporterSingleton);
-    }
+    reporterSingleton = new TelemetryReporter(packageInfo.name, packageInfo.version, packageInfo.aiKey);
+    context.subscriptions.push(reporterSingleton);
     return reporterSingleton;
 }
 
