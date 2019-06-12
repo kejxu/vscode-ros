@@ -7,16 +7,14 @@ import * as vscode from "vscode";
 import * as extension from "./extension";
 import * as telemetry from "./telemetry-helper";
 
-/**
- * Interacts with the user to run a `catkin_create_pkg` command.
- */
+// tslint:disable-next-line: export-name
 export async function createPackage(context: vscode.ExtensionContext, uri?: vscode.Uri) {
     const reporter = telemetry.getReporter(context);
     reporter.sendTelemetryCommand(extension.Commands.CreateCatkinPackage);
 
     const name = await vscode.window.showInputBox({
         prompt: "Package name",
-        validateInput: val => val.match(/^\w+$/) ? "" : "Invalid name",
+        validateInput: (val) => val.match(/^\w+$/) ? "" : "Invalid name",
     });
 
     if (!name) {
@@ -25,15 +23,19 @@ export async function createPackage(context: vscode.ExtensionContext, uri?: vsco
 
     const dependencies = await vscode.window.showInputBox({
         prompt: "Dependencies",
-        validateInput: val => val.match(/^\s*(\w+\s*)*$/) ? "" : "Invalid dependencies",
+        validateInput: (val) => val.match(/^\s*(\w+\s*)*$/) ? "" : "Invalid dependencies",
     });
 
-    if (typeof dependencies === "undefined") {
+    // user canceled InputBox with ESC
+    if (dependencies === undefined) {
         return;
     }
 
-    const cwd = typeof uri !== "undefined" ? uri.fsPath : `${extension.baseDir}/src`;
-    const opts = { cwd, env: extension.env };
+    const cwd = uri ? uri.fsPath : `${extension.baseDir}/src`;
+    const opts = {
+        cwd,
+        env: extension.env,
+    };
 
     let createPkgCommand: string;
 
@@ -48,7 +50,7 @@ export async function createPackage(context: vscode.ExtensionContext, uri?: vsco
             vscode.workspace.openTextDocument(`${cwd}/${name}/package.xml`).then(vscode.window.showTextDocument);
         } else {
             let message = "Could not create package";
-            let index = stderr.indexOf("error:");
+            const index = stderr.indexOf("error:");
 
             if (index !== -1) {
                 message += ": " + stderr.substr(index);

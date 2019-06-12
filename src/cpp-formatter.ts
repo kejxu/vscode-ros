@@ -58,8 +58,9 @@ const CLANG_FORMAT_STYLE = {
 /**
  * Formats C++ source using clang-format.
  */
-export default class CppFormatter implements vscode.DocumentFormattingEditProvider {
-    public provideDocumentFormattingEdits(document: vscode.TextDocument,
+export class CppFormatter implements vscode.DocumentFormattingEditProvider {
+    public provideDocumentFormattingEdits(
+        document: vscode.TextDocument,
         options: vscode.FormattingOptions,
         token: vscode.CancellationToken): Thenable<vscode.TextEdit[]> {
         const tabs = options.insertSpaces ? "Never" : "Always";

@@ -30,7 +30,7 @@ export async function createConfigFiles() {
         await pfs.mkdir(dir);
     }
 
-    pfs.exists(path.join(dir, "c_cpp_properties.json")).then(exists => {
+    pfs.exists(path.join(dir, "c_cpp_properties.json")).then((exists) => {
         if (!exists) {
             updateCppPropertiesInternal();
         }
@@ -53,14 +53,15 @@ async function updateCppPropertiesInternal(): Promise<void> {
 
     // Get all packages within the workspace, and check if they have an include
     // directory. If so, add them to the list.
-    const packages = await utils.getPackages().then(
-        pkgs => _.values(pkgs).filter(pkg => pkg.startsWith(extension.baseDir))
-    );
+    const packages = await utils.getPackages().then((pkgs) => {
+        return _.values(pkgs).filter((pkg) => {
+            return pkg.startsWith(extension.baseDir);
+        });
+    });
 
-    await Promise.all(packages.map(pkg => {
+    await Promise.all(packages.map((pkg) => {
         const include = path.join(pkg, "include");
-
-        return pfs.exists(include).then(exists => {
+        return pfs.exists(include).then((exists) => {
             if (exists) {
                 includes.push(include);
             }
@@ -70,7 +71,10 @@ async function updateCppPropertiesInternal(): Promise<void> {
     await pfs.writeFile(filename, JSON.stringify({
         configurations: [
             {
-                browse: { databaseFilename: "", limitSymbolsToIncludedHeaders: true },
+                browse: {
+                    databaseFilename: "",
+                    limitSymbolsToIncludedHeaders: true,
+                },
                 includePath: [...includes, "/usr/include"],
                 name: "Linux",
             },

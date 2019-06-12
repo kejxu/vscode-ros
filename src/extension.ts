@@ -6,13 +6,14 @@ import * as vscode from "vscode";
 
 import * as build from "./build";
 import * as catkin from "./catkin";
-import CatkinTaskProvider from "./catkin-task-provider";
-import CppFormatter from "./cpp-formatter";
+import * as catkinTaskProvider from "./catkin-task-provider";
+import * as cppFormatter from "./cpp-formatter";
 import * as debug from "./debug";
 import * as master from "./master";
 import * as pfs from "./promise-fs";
 import * as telemetry from "./telemetry-helper";
 import * as utils from "./utils";
+import * as vscodeHelper from "./vscode-helper";
 
 import * as roslaunch from "./ros/roslaunch";
 import * as rosrun from "./ros/rosrun";
@@ -22,7 +23,11 @@ import * as rosrun from "./ros/rosrun";
  */
 export let baseDir: string;
 
-export enum BuildSystem { None, CatkinMake, CatkinTools };
+export enum BuildSystem {
+    None,
+    CatkinMake,
+    CatkinTools,
+}
 
 /**
  * The build system in use.
@@ -34,7 +39,7 @@ export let buildSystem: BuildSystem;
  */
 export let env: any;
 
-let onEnvChanged = new vscode.EventEmitter<void>();
+const onEnvChanged = new vscode.EventEmitter<void>();
 
 /**
  * Triggered when the env is soured.
@@ -44,7 +49,7 @@ export let onDidChangeEnv = onEnvChanged.event;
 /**
  * Subscriptions to dispose when the environment is changed.
  */
-let subscriptions = <vscode.Disposable[]>[];
+const subscriptions: vscode.Disposable[] = [];
 
 export enum Commands {
     CreateCatkinPackage = "ros.createCatkinPackage",
@@ -65,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Activate if we're in a catkin workspace.
     await determineBuildSystem(vscode.workspace.rootPath);
 
-    if (buildSystem == BuildSystem.None) {
+    if (buildSystem === BuildSystem.None) {
         return;
     }
 
@@ -74,16 +79,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Activate components which don't require the ROS env.
     context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(
-        "cpp", new CppFormatter()
+        "cpp", new cppFormatter.CppFormatter(),
     ));
 
     // Source the environment, and re-source on config change.
-    let config = utils.getConfig();
+    let config = vscodeHelper.getExtensionConfiguration();
 
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(() => {
-        const updatedConfig = utils.getConfig();
-        const fields = Object.keys(config).filter(k => !(config[k] instanceof Function));
-        const changed = fields.some(key => updatedConfig[key] !== config[key]);
+        const updatedConfig = vscodeHelper.getExtensionConfiguration();
+        const fields = Object.keys(config).filter((k) => !(config[k] instanceof Function));
+        const changed = fields.some((key) => updatedConfig[key] !== config[key]);
 
         if (changed) {
             sourceRosAndWorkspace();
@@ -103,7 +108,9 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    subscriptions.forEach(disposable => disposable.dispose());
+    subscriptions.forEach((disposable) => {
+        disposable.dispose();
+    });
 }
 
 /**
@@ -137,7 +144,7 @@ function activateEnvironment(context: vscode.ExtensionContext) {
         subscriptions.pop().dispose();
     }
 
-    if (typeof env.ROS_ROOT === "undefined") {
+    if (!env.ROS_ROOT) {
         return;
     }
 
@@ -148,7 +155,7 @@ function activateEnvironment(context: vscode.ExtensionContext) {
     coreStatusItem.activate();
 
     subscriptions.push(coreStatusItem);
-    subscriptions.push(vscode.workspace.registerTaskProvider("catkin", new CatkinTaskProvider()));
+    subscriptions.push(vscode.workspace.registerTaskProvider("catkin", new catkinTaskProvider.CatkinTaskProvider()));
     subscriptions.push(vscode.debug.registerDebugConfigurationProvider("ros", new debug.RosDebugConfigProvider()));
 
     // register plugin commands
@@ -195,13 +202,12 @@ function activateEnvironment(context: vscode.ExtensionContext) {
 async function sourceRosAndWorkspace(): Promise<void> {
     env = undefined;
 
-    const config = utils.getConfig();
+    const config = vscodeHelper.getExtensionConfiguration();
     const distro = config.get("distro", "");
     let setupScriptExt: string;
     if (process.platform === "win32") {
         setupScriptExt = ".bat";
-    }
-    else {
+    } else {
         setupScriptExt = ".bash";
     }
 
@@ -210,20 +216,19 @@ async function sourceRosAndWorkspace(): Promise<void> {
             let globalInstallPath: string;
             if (process.platform === "win32") {
                 globalInstallPath = path.join("C:", "opt", "ros", `${distro}`, "x64");
-            }
-            else {
+            } else {
                 globalInstallPath = path.join("/", "opt", "ros", `${distro}`);
             }
-            let setupScript: string = path.format({
+            const setupScript: string = path.format({
                 dir: globalInstallPath,
-                name: "setup",
                 ext: setupScriptExt,
+                name: "setup",
             });
             env = await utils.sourceSetupFile(setupScript, {});
         } catch (err) {
             vscode.window.showErrorMessage(`Could not source the setup file for ROS distro "${distro}".`);
         }
-    } else if (typeof process.env.ROS_ROOT !== "undefined") {
+    } else if (process.env.ROS_ROOT) {
         env = process.env;
     } else {
         const message = "The ROS distro is not configured.";
@@ -240,16 +245,16 @@ async function sourceRosAndWorkspace(): Promise<void> {
     if (!await pfs.exists(workspaceDevelPath)) {
         workspaceDevelPath = path.join(`${baseDir}`, "devel");
     }
-    let wsSetupScript: string = path.format({
+    const wsSetupScript: string = path.format({
         dir: workspaceDevelPath,
-        name: "setup",
         ext: setupScriptExt,
+        name: "setup",
     });
 
-    if (env && typeof env.ROS_ROOT !== "undefined" && await pfs.exists(wsSetupScript)) {
+    if (env && env.ROS_ROOT && await pfs.exists(wsSetupScript)) {
         try {
             env = await utils.sourceSetupFile(wsSetupScript, env);
-        } catch (_err) {
+        } catch (err) {
             vscode.window.showErrorMessage("Failed to source the workspace setup file.");
         }
     }

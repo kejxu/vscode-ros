@@ -14,14 +14,14 @@ export function startCore(context: vscode.ExtensionContext) {
     const reporter = telemetry.getReporter(context);
     reporter.sendTelemetryCommand(extension.Commands.StartRosCore);
 
-    let launchCoreCommand: string = "roscore";
-    let processOptions: child_process.SpawnOptions = {
+    const launchCoreCommand: string = "roscore";
+    const processOptions: child_process.SpawnOptions = {
         cwd: extension.baseDir,
         env: extension.env,
     };
 
     const roscoreProcess = child_process.spawn(launchCoreCommand, processOptions);
-    roscoreProcess.on('error', (_err) => {
+    roscoreProcess.on("error", (err) => {
         vscode.window.showErrorMessage("Failed to launch ROS core.");
     });
 }
@@ -31,10 +31,13 @@ export function stopCore(context: vscode.ExtensionContext, api: XmlRpcApi) {
     reporter.sendTelemetryCommand(extension.Commands.TerminateRosCore);
 
     if (process.platform === "win32") {
-        api.getPid().then(pid => child_process.exec(`taskkill /pid ${pid} /f`));
-    }
-    else {
-        api.getPid().then(pid => child_process.exec(`kill $(ps -o ppid= -p '${pid}')`));
+        api.getPid().then((pid) => {
+            child_process.exec(`taskkill /pid ${pid} /f`);
+        });
+    } else {
+        api.getPid().then((pid) => {
+            child_process.exec(`kill $(ps -o ppid= -p '${pid}')`);
+        });
     }
 }
 
@@ -51,36 +54,35 @@ export function launchMonitor(context: vscode.ExtensionContext) {
         }
     );
 
-    let stylesheet = vscode.Uri.file(path.join(context.extensionPath, "assets", "roscoreMonitorStyle.css")).with({
-        scheme: "vscode-resource"
+    const stylesheet = vscode.Uri.file(path.join(context.extensionPath, "assets", "roscoreMonitorStyle.css")).with({
+        scheme: "vscode-resource",
     });
-    let script = vscode.Uri.file(path.join(context.extensionPath, "out", "src", "roscoreMonitor", "main.js")).with({
-        scheme: "vscode-resource"
+    const script = vscode.Uri.file(path.join(context.extensionPath, "out", "src", "roscoreMonitor", "main.js")).with({
+        scheme: "vscode-resource",
     });
 
     panel.webview.html = getCoreStatusWebviewContent(stylesheet, script);
 
     setInterval(() => {
         const masterApi = new XmlRpcApi(extension.env.ROS_MASTER_URI);
-        masterApi.check().then((status: boolean) => {
-            if (status) {
-                let getParameters = masterApi.getParam("/");
-                let getSystemState = masterApi.getSystemState();
+        masterApi.check().then((coreStatus: boolean) => {
+            if (coreStatus) {
+                const getParameters = masterApi.getParam("/");
+                const getSystemState = masterApi.getSystemState();
 
                 Promise.all([getParameters, getSystemState]).then(([parameters, systemState]) => {
-                    let parametersJSON = JSON.stringify(parameters);
-                    let systemStateJSON = JSON.stringify(systemState);
+                    const parametersJSON = JSON.stringify(parameters);
+                    const systemStateJSON = JSON.stringify(systemState);
 
                     panel.webview.postMessage({
-                        status: status,
                         parameters: parametersJSON,
+                        status: coreStatus,
                         systemState: systemStateJSON,
                     });
                 });
-            }
-            else {
+            } else {
                 panel.webview.postMessage({
-                    status: status,
+                    status: coreStatus,
                 });
             }
         });

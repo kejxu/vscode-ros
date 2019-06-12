@@ -15,7 +15,9 @@ export async function getDebugSettings(context: vscode.ExtensionContext) {
     const reporter = telemetry.getReporter(context);
     reporter.sendTelemetryCommand(extension.Commands.GetDebugSettings);
 
-    return JSON.stringify({ env: extension.env });
+    return JSON.stringify({
+        env: extension.env,
+    });
 }
 
 /**
@@ -38,17 +40,25 @@ export class RosDebugConfigProvider implements vscode.DebugConfigurationProvider
         let target: string;
 
         if (packageName) {
-            let basenames = (files: string[]) => files.map(file => path.basename(file));
+            const basenames = (files: string[]) => files.map((file) => {
+                return path.basename(file);
+            });
 
             if (command === "roslaunch") {
                 const launches = utils.findPackageLaunchFiles(packageName).then(basenames);
-                target = await vscode.window.showQuickPick(launches, { placeHolder: "Launch file" });
+                target = await vscode.window.showQuickPick(launches, {
+                    placeHolder: "Launch file",
+                });
             } else {
                 const executables = utils.findPackageExecutables(packageName).then(basenames);
-                target = await vscode.window.showQuickPick(executables, { placeHolder: "Executable" });
+                target = await vscode.window.showQuickPick(executables, {
+                    placeHolder: "Executable",
+                });
             }
         } else {
-            target = await vscode.window.showInputBox({ placeHolder: "Target" });
+            target = await vscode.window.showInputBox({
+                placeHolder: "Target",
+            });
         }
 
         config.type = "ros";
@@ -58,7 +68,6 @@ export class RosDebugConfigProvider implements vscode.DebugConfigurationProvider
         config.target = target;
         config.args = [];
         config.debugSettings = "${command:debugSettings}";
-
         return config;
     }
 }

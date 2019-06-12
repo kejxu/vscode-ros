@@ -8,6 +8,7 @@ import * as extension from "../extension";
 import * as telemetry from "../telemetry-helper";
 import * as utils from "../utils";
 
+// tslint:disable-next-line: export-name
 export async function setup(context: vscode.ExtensionContext) {
     const reporter = telemetry.getReporter(context);
     reporter.sendTelemetryCommand(extension.Commands.Rosrun);
@@ -21,13 +22,22 @@ async function preparerosrun(): Promise<vscode.Terminal> {
     const packageName = await vscode.window.showQuickPick(packages.then(Object.keys), {
         placeHolder: "Choose a package",
     });
-    if (packageName !== undefined) {
-        let basenames = (files: string[]) => files.map((file) => path.basename(file));
+    if (packageName) {
+        let executables: string[];
+        utils.findPackageExecutables(packageName).then((files) => {
+            executables = files.map((file) => {
+                return path.basename(file);
+            });
+        });
 
-        const executables = utils.findPackageExecutables(packageName).then(basenames);
-        let target = await vscode.window.showQuickPick(executables, { placeHolder: "Choose an executable" });
-        let argument = await vscode.window.showInputBox({ placeHolder: "Enter any extra arguments" });
-        let terminal = vscode.window.createTerminal({
+        // const executables = utils.findPackageExecutables(packageName).then(basenames);
+        const target = await vscode.window.showQuickPick(executables, {
+            placeHolder: "Choose an executable",
+        });
+        const argument = await vscode.window.showInputBox({
+            placeHolder: "Enter any extra arguments",
+        });
+        const terminal = vscode.window.createTerminal({
             env: extension.env,
             name: "rosrun",
         });
