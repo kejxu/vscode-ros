@@ -2,7 +2,8 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
-import * as extension from "./extension";
+
+import * as extension from "../extension";
 
 /**
  * Provides catkin build and test tasks.

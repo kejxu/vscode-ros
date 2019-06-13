@@ -4,8 +4,8 @@
 import * as path from "path";
 import * as vscode from "vscode";
 
-import * as extension from "./extension";
-import * as telemetry from "./telemetry-helper";
+import * as extension from "../extension";
+import * as telemetry from "../telemetry-helper";
 import * as utils from "./utils";
 
 /**
@@ -23,7 +23,7 @@ export async function getDebugSettings(context: vscode.ExtensionContext) {
 /**
  * Interacts with the user to create a `roslaunch` or `rosrun` configuration.
  */
-export class RosDebugConfigProvider implements vscode.DebugConfigurationProvider {
+class RosDebugConfigProvider implements vscode.DebugConfigurationProvider {
     public provideDebugConfigurations(folder: vscode.WorkspaceFolder | undefined, token?: vscode.CancellationToken) {
         return [];
     }
@@ -70,4 +70,8 @@ export class RosDebugConfigProvider implements vscode.DebugConfigurationProvider
         config.debugSettings = "${command:debugSettings}";
         return config;
     }
+}
+
+export function getDebugConfigConfiguration(): vscode.DebugConfigurationProvider {
+    return new RosDebugConfigProvider();
 }

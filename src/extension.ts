@@ -4,19 +4,18 @@
 import * as path from "path";
 import * as vscode from "vscode";
 
-import * as build from "./build";
-import * as catkin from "./catkin";
-import * as catkinTaskProvider from "./catkin-task-provider";
-import * as cppFormatter from "./cpp-formatter";
-import * as debug from "./debug";
-import * as master from "./master";
+import * as cpp_formatter from "./cpp-formatter";
 import * as pfs from "./promise-fs";
 import * as telemetry from "./telemetry-helper";
-import * as utils from "./utils";
-import * as vscodeHelper from "./vscode-helper";
+import * as vscodeHelper from "./utils";
 
-import * as roslaunch from "./ros/roslaunch";
-import * as rosrun from "./ros/rosrun";
+import * as catkin from "./catkin/catkin";
+
+import * as ros_build_env from "./ros/build-env-utils";
+import * as ros_cli from "./ros/cli";
+import * as ros_core from "./ros/core-helper";
+import * as ros_debug from "./ros/debug-config-provider";
+import * as ros_utils from "./ros/utils";
 
 /**
  * The catkin workspace base dir.
@@ -79,7 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Activate components which don't require the ROS env.
     context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(
-        "cpp", new cppFormatter.CppFormatter(),
+        "cpp", new cpp_formatter.CppFormatter(),
     ));
 
     // Source the environment, and re-source on config change.
@@ -149,14 +148,14 @@ function activateEnvironment(context: vscode.ExtensionContext) {
     }
 
     // Set up the master.
-    const masterApi = new master.XmlRpcApi(env.ROS_MASTER_URI);
-    const coreStatusItem = new master.StatusBarItem(masterApi);
+    const coreApi = new ros_core.XmlRpcApi(env.ROS_MASTER_URI);
+    const coreStatusItem = new ros_core.StatusBarItem(coreApi);
 
     coreStatusItem.activate();
 
     subscriptions.push(coreStatusItem);
-    subscriptions.push(vscode.workspace.registerTaskProvider("catkin", new catkinTaskProvider.CatkinTaskProvider()));
-    subscriptions.push(vscode.debug.registerDebugConfigurationProvider("ros", new debug.RosDebugConfigProvider()));
+    subscriptions.push(vscode.workspace.registerTaskProvider("catkin", catkin.getCatkinTaskProvider()));
+    subscriptions.push(vscode.debug.registerDebugConfigurationProvider("ros", ros_debug.getDebugConfigConfiguration()));
 
     // register plugin commands
     subscriptions.push(
@@ -164,36 +163,36 @@ function activateEnvironment(context: vscode.ExtensionContext) {
             catkin.createPackage(context);
         }),
         vscode.commands.registerCommand(Commands.CreateTerminal, () => {
-            utils.createTerminal(context);
+            ros_utils.createTerminal(context);
         }),
         vscode.commands.registerCommand(Commands.GetDebugSettings, () => {
-            debug.getDebugSettings(context);
+            ros_debug.getDebugSettings(context);
         }),
         vscode.commands.registerCommand(Commands.ShowCoreStatus, () => {
-            master.launchMonitor(context);
+            ros_core.launchMonitor(context);
         }),
         vscode.commands.registerCommand(Commands.StartRosCore, () => {
-            master.startCore(context);
+            ros_core.startCore(context);
         }),
         vscode.commands.registerCommand(Commands.TerminateRosCore, () => {
-            master.stopCore(context, masterApi);
+            ros_core.stopCore(context, coreApi);
         }),
         vscode.commands.registerCommand(Commands.UpdateCppProperties, () => {
-            build.updateCppProperties(context);
+            ros_build_env.updateCppProperties(context);
         }),
         vscode.commands.registerCommand(Commands.UpdatePythonPath, () => {
-            build.updatePythonPath(context);
+            ros_build_env.updatePythonPath(context);
         }),
         vscode.commands.registerCommand(Commands.Rosrun, () => {
-            rosrun.setup(context);
+            ros_cli.rosrun(context);
         }),
         vscode.commands.registerCommand(Commands.Roslaunch, () => {
-            roslaunch.setup(context);
+            ros_cli.roslaunch(context);
         }),
     );
 
     // Generate config files if they don't already exist.
-    build.createConfigFiles();
+    ros_build_env.createConfigFiles();
 }
 
 /**
@@ -224,7 +223,7 @@ async function sourceRosAndWorkspace(): Promise<void> {
                 ext: setupScriptExt,
                 name: "setup",
             });
-            env = await utils.sourceSetupFile(setupScript, {});
+            env = await ros_utils.sourceSetupFile(setupScript, {});
         } catch (err) {
             vscode.window.showErrorMessage(`Could not source the setup file for ROS distro "${distro}".`);
         }
@@ -235,7 +234,7 @@ async function sourceRosAndWorkspace(): Promise<void> {
         const configure = "Configure";
 
         if (await vscode.window.showErrorMessage(message, configure) === configure) {
-            config.update("distro", await vscode.window.showQuickPick(utils.getDistros()));
+            config.update("distro", await vscode.window.showQuickPick(ros_utils.getDistros()));
         }
     }
 
@@ -253,7 +252,7 @@ async function sourceRosAndWorkspace(): Promise<void> {
 
     if (env && env.ROS_ROOT && await pfs.exists(wsSetupScript)) {
         try {
-            env = await utils.sourceSetupFile(wsSetupScript, env);
+            env = await ros_utils.sourceSetupFile(wsSetupScript, env);
         } catch (err) {
             vscode.window.showErrorMessage("Failed to source the workspace setup file.");
         }

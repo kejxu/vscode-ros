@@ -4,10 +4,10 @@
 import * as cp from "child_process";
 import * as vscode from "vscode";
 
-import * as extension from "./extension";
-import * as telemetry from "./telemetry-helper";
+import * as extension from "../extension";
+import * as telemetry from "../telemetry-helper";
+import * as catkin_task_provider from "./catkin-task-provider";
 
-// tslint:disable-next-line: export-name
 export async function createPackage(context: vscode.ExtensionContext, uri?: vscode.Uri) {
     const reporter = telemetry.getReporter(context);
     reporter.sendTelemetryCommand(extension.Commands.CreateCatkinPackage);
@@ -59,4 +59,8 @@ export async function createPackage(context: vscode.ExtensionContext, uri?: vsco
             vscode.window.showErrorMessage(message);
         }
     });
+}
+
+export function getCatkinTaskProvider(): catkin_task_provider.CatkinTaskProvider {
+    return new catkin_task_provider.CatkinTaskProvider();
 }
