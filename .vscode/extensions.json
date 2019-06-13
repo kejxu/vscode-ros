@@ -1,7 +1,5 @@
 {
     "recommendations": [
         "ms-vscode.vscode-typescript-tslint-plugin",
-        // "dbaeumer.vscode-eslint", // TSLint is migrating to ESLint (https://github.com/palantir/tslint/issues/4534)
-        // "davidanson.vscode-markdownlint"
     ]
 }
